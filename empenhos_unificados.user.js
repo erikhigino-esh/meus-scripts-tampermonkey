@@ -6,6 +6,8 @@
 // @match        https://ofcweb.inss.gov.br/*
 // @match        http://ofcweb.inss.gov.br/*
 // @grant        none
+// @updateURL    https://github.com/erikhigino-esh/meus-scripts-tampermonkey/raw/refs/heads/main/empenhos_unificados.user.js
+// @downloadURL  https://github.com/erikhigino-esh/meus-scripts-tampermonkey/raw/refs/heads/main/empenhos_unificados.user.js
 // ==/UserScript==
 
 (function () {
