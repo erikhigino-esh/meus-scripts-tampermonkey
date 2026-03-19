@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         Preenchimento Automático
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @autor        Erik Higino
+// @version      1.1
 // @description  Unifica: Data Atual + Agência + Vencimento/CIT (CSV) + Consolidação de radios + DEA (RPV)
 // @match        https://ofcweb.inss.gov.br/View/Form_AP_DH_Geral.php*
 // @grant        GM_getResourceText
+// @grant        GM_xmlhttpRequest
 // @resource     AUTORIZACAO file:///Users/erikhigino/Documents/ofc/data/autorizacao.csv
 // @run-at       document-start
 // @updateURL    https://github.com/erikhigino-esh/meus-scripts-tampermonkey/raw/refs/heads/main/preenchimento_auto.user.js
@@ -112,6 +114,40 @@
     bancoEl.addEventListener("change", () => preencherAgencia(), true);
   }
 
+    function carregarCSVAutorizacao(callback) {
+    // 1) tenta @resource primeiro (mantém seu comportamento atual)
+    try {
+      const txt = GM_getResourceText("AUTORIZACAO");
+      if (txt && txt.trim()) {
+        callback(txt);
+        return;
+      }
+    } catch (e) {
+      console.debug("[OFCWeb] GM_getResourceText falhou:", e);
+    }
+
+    // 2) fallback: tenta ler o mesmo file:/// via GM_xmlhttpRequest
+    try {
+      GM_xmlhttpRequest({
+        method: "GET",
+        url: "file:///Users/erikhigino/Documents/ofc/data/autorizacao.csv",
+        onload: function (resp) {
+          const txt = resp && typeof resp.responseText === "string" ? resp.responseText : "";
+          if (txt && txt.trim()) {
+            callback(txt);
+          } else {
+            console.debug("[OFCWeb] CSV vazio via GM_xmlhttpRequest(file://).");
+          }
+        },
+        onerror: function (err) {
+          console.debug("[OFCWeb] Falha lendo CSV via GM_xmlhttpRequest(file://):", err);
+        }
+      });
+    } catch (e) {
+      console.debug("[OFCWeb] GM_xmlhttpRequest indisponível para file://:", e);
+    }
+  }
+  
   /* ============================================================
      3) VENCIMENTO + CIT (CSV)
      ============================================================ */
@@ -158,18 +194,14 @@
     const ap = obterNumeroAP();
     if (!ap) return;
 
-    let csv;
-    try { csv = GM_getResourceText("AUTORIZACAO"); } catch (e) {
-      console.debug("[OFCWeb] Falha lendo resource AUTORIZACAO:", e);
-      return;
-    }
-    if (!csv || !csv.trim()) {
-      console.debug("[OFCWeb] CSV vazio/não carregado. Verifique @resource e 'Permitir acesso a URLs do arquivo'.");
-      return;
-    }
+    carregarCSVAutorizacao(function (csv) {
+      if (!csv || !csv.trim()) {
+        console.debug("[OFCWeb] CSV vazio/não carregado.");
+        return;
+      }
 
-    const dados = parseCSV(csv).get(ap);
-    if (!dados) return;
+      const dados = parseCSV(csv).get(ap);
+      if (!dados) return;
 
     const vencCSV = (dados.venc || "").trim();
     const citCSV  = (dados.cit  || "").trim();
@@ -201,7 +233,8 @@
       }
     }
   }
-
+    });
+  }
   /* ============================================================
      4) CONSOLIDAÇÃO (radios + Continuar + Confirmar)
      ============================================================ */
