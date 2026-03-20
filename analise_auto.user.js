@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         Análise Automática
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @author       Erik Higino
+// @version      3.1
 // @description  Fluxo automático de análise de AP. Detecta automaticamente o ano (2025/2026) e ajusta URLs. Intercepta confirm, evita modal via fetch, inclui tab-nudge e toggle UI.
 // @match        https://ofcweb.inss.gov.br/View/Registrar_Analise_Ap_OFC.php*
 // @match        https://ofcweb.inss.gov.br/View/*
