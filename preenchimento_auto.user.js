@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Preenchimento Automático
 // @namespace    http://tampermonkey.net/
-// @autor        Erik Higino
-// @version      1.1
+// @author       Erik Higino
+// @version      1.2
 // @description  Unifica: Data Atual + Agência + Vencimento/CIT (CSV) + Consolidação de radios + DEA (RPV)
 // @match        https://ofcweb.inss.gov.br/View/Form_AP_DH_Geral.php*
 // @grant        GM_getResourceText
