@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         Monitor AP
 // @namespace    https://ofcweb.inss.gov.br/
-// @version      1.2
+// @author       Erik Higino
+// @version      1.3
 // @description  Monitora APs, mostra toast central com countdown, recarrega a cada 10 min e alerta no iPhone via iMessage (servidor local).
 // @match        https://ofcweb.inss.gov.br/View/Registrar_Analise_Ap_OFC.php*
 // @grant        none
