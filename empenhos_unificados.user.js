@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Empenhos Unificados
-// @autor        Erik Higino
 // @namespace    https://ofcweb.inss.gov.br/
-// @version      2.4
+// @author       Erik Higino
+// @version      2.5
 // @description  Preenche automaticamente o Nº do Empenho no PCO conforme o ITEM da AP. Detecta automaticamente o ano selecionado (2025 ou 2026) e aplica os compromissos correspondentes. Versão com interface visual.
 // @match        https://ofcweb.inss.gov.br/*
 // @match        http://ofcweb.inss.gov.br/*
