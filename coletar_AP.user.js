@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Coletar APs
 // @namespace    http://tampermonkey.net/
-// @autor        Erik Higino
-// @version      1.3
+// @author       Erik Higino
+// @version      1.4
 // @description  Captura APs SOMENTE da coluna "Nº AP" e envia ao servidor unificado. Forçado para 2025/2026.
 // @match        https://ofcweb.inss.gov.br/View/Registrar_Analise_Ap_OFC.php*
 // @grant        GM_xmlhttpRequest
