@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         OFCWeb - Captura Guia PDF → CSV v2 (somente Depósito Judicial | porta 8766)
+// @name         Captura Guia PDF
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      2.0
+// @version      2.1
 // @description  Captura apenas "Guias de Depósito Judicial via Boleto de Cobrança" (PDF no padrão /uploads/AAAA/MM/AP<digitos>_*.pdf). Interface melhorada com estatísticas.
 // @match        https://ofcweb.inss.gov.br/*
 // @grant        GM_getValue
