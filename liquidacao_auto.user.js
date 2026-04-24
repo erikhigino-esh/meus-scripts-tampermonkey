@@ -2,8 +2,8 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      5.1
-// @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente.
+// @version      5.2
+// @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
 // @match        https://ofcweb.inss.gov.br/View/Form_AP_DH_Geral.php*
@@ -937,6 +937,19 @@
     }
   }
 
+  // ======================= DATA EMISSÃO CONTÁBIL =======================
+  function fillDataEmissao() {
+    if (!isDhFormPage()) return;
+    const campo = document.getElementById("dt_emissao_contabil");
+    if (!campo) return;
+    const hoje = new Date();
+    const dd = String(hoje.getDate()).padStart(2, "0");
+    const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+    const aaaa = hoje.getFullYear();
+    campo.value = `${dd}/${mm}/${aaaa}`;
+    log(`Data emissão contábil preenchida: ${campo.value}`);
+  }
+
   // ======================= RUNNER =======================
   let running = false;
 
@@ -961,6 +974,7 @@
 
   function startLoop() {
     log("Script carregado");
+    fillDataEmissao();
 
     // Tenta criar toggle imediatamente
     ensureFloatingToggle();
