@@ -2,7 +2,7 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      5.2
+// @version      5.3
 // @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
@@ -702,9 +702,7 @@
       }
     };
 
-    // Múltiplas tentativas de montagem
     if (!mount()) {
-      // Tenta quando DOM estiver pronto
       if (document.readyState === 'loading') {
         document.addEventListener("DOMContentLoaded", () => {
           log("Tentando montar toggle (DOMContentLoaded)");
@@ -712,7 +710,6 @@
         }, { once: true });
       }
 
-      // Tenta quando window carregar
       window.addEventListener("load", () => {
         if (!window.__ofcAutoToggleDH) {
           log("Tentando montar toggle (window.load)");
@@ -720,7 +717,6 @@
         }
       }, { once: true });
 
-      // Tenta após timeout
       setTimeout(() => {
         if (!window.__ofcAutoToggleDH) {
           log("Tentando montar toggle (timeout 500ms)");
@@ -728,7 +724,6 @@
         }
       }, 500);
 
-      // Tenta após timeout maior
       setTimeout(() => {
         if (!window.__ofcAutoToggleDH) {
           log("Tentando montar toggle (timeout 1500ms)");
@@ -737,7 +732,6 @@
       }, 1500);
     }
 
-    // Observer para atualizar ano quando mudar
     const setupObserver = () => {
       const select = document.querySelector("#lstExercicio");
       if (select) {
@@ -863,6 +857,14 @@
     return h.includes("/View/Form_AP_DH_") || h.includes("/View/Form_AP_DH_Geral.php");
   }
 
+  function findBtnSalvarDH() {
+    return Array.from(document.querySelectorAll('input[type="button"]'))
+      .find(b =>
+        (b.value || "").trim() === "Salvar DH no OFCWeb" ||
+        /enviar\(1\)/i.test(b.getAttribute("onclick") || "")
+      );
+  }
+
   function findBtnGerarDH() {
     return (
       document.querySelector("#bt_doc_habil") ||
@@ -887,16 +889,38 @@
     const step = getStep();
     const ts = getTS();
 
-    const btnGerar = findBtnGerarDH();
-    if (btnGerar && step !== "gerar_clicked" && step !== "confirm_clicked" && step !== "after_transmit") {
-      setStep("gerar_clicked");
+    // PASSO 1 — Salvar DH no OFCWeb
+    const btnSalvar = findBtnSalvarDH();
+    if (btnSalvar && !step) {
+      setStep("salvar_clicked");
       setTS(now);
-      toast('🧾 Clicando em "Gerar Documento Hábil"…', 2000);
-      setTimeout(() => { try { btnGerar.click(); } catch { } }, 450);
+      toast('💾 Clicando em "Salvar DH no OFCWeb"…', 2000);
+      setTimeout(() => { try { btnSalvar.click(); } catch { } }, 450);
       return;
     }
 
-    const btnConfirmar = findBtnConfirmarDialog();
+    // PASSO 2 — Aguardar 5s e clicar em Gerar Documento Hábil
+    if (step === "salvar_clicked") {
+      const elapsed = now - ts;
+      if (elapsed < 5000) {
+        toast(`⏳ Aguardando ${Math.ceil((5000 - elapsed) / 1000)}s para "Gerar Documento Hábil"…`, 1200);
+        return;
+      }
+
+      const btnGerar = findBtnGerarDH();
+      if (btnGerar) {
+        setStep("gerar_clicked");
+        setTS(Date.now());
+        toast('🧾 Clicando em "Gerar Documento Hábil"…', 2000);
+        setTimeout(() => { try { btnGerar.click(); } catch { } }, 450);
+        return;
+      }
+
+      toast('⏳ Aguardando aparecer o botão "Gerar Documento Hábil"…', 1500);
+      return;
+    }
+
+    // PASSO 3 — Aguardar 5s e clicar em Confirmar
     if (step === "gerar_clicked") {
       const elapsed = now - ts;
       if (elapsed < 5000) {
@@ -904,6 +928,7 @@
         return;
       }
 
+      const btnConfirmar = findBtnConfirmarDialog();
       if (btnConfirmar) {
         setStep("confirm_clicked");
         setTS(Date.now());
@@ -917,6 +942,7 @@
       return;
     }
 
+    // PASSO 4 — Transmissão encaminhada, aguardar 5s
     if (step === "confirm_clicked") {
       setStep("after_transmit");
       setTS(Date.now());
@@ -924,6 +950,7 @@
       return;
     }
 
+    // PASSO 5 — Voltar para a lista
     if (step === "after_transmit") {
       const elapsed = now - ts;
       if (elapsed < 5000) {
@@ -976,10 +1003,8 @@
     log("Script carregado");
     fillDataEmissao();
 
-    // Tenta criar toggle imediatamente
     ensureFloatingToggle();
 
-    // Tenta criar toggle quando DOM carregar
     if (document.readyState === 'loading') {
       document.addEventListener("DOMContentLoaded", () => {
         log("DOMContentLoaded - garantindo toggle");
@@ -987,7 +1012,6 @@
       });
     }
 
-    // Tenta criar toggle quando window carregar
     window.addEventListener("load", () => {
       log("Window loaded - garantindo toggle");
       ensureFloatingToggle();
