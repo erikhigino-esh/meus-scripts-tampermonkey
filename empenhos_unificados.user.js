@@ -2,7 +2,7 @@
 // @name         Empenhos Unificados
 // @namespace    https://ofcweb.inss.gov.br/
 // @author       Erik Higino
-// @version      2.5
+// @version      2.6
 // @description  Preenche automaticamente o Nº do Empenho no PCO conforme o ITEM da AP. Detecta automaticamente o ano selecionado (2025 ou 2026) e aplica os compromissos correspondentes. Versão com interface visual.
 // @match        https://ofcweb.inss.gov.br/*
 // @match        http://ofcweb.inss.gov.br/*
@@ -26,6 +26,11 @@
         itemAlvo: "AUXILIO PROGRAMA DE REABILITAÇÃO PROFISSIONAL",
         empenho: "2026NE500058",
         etiqueta: "RPB04",
+      },
+      {
+        itemAlvo: "AUXILIO PARA EXAME FORA DO DOMICILIO",
+        empenho: "2026NE500058",
+        etiqueta: "RPB1",
       },
       {
         itemAlvo: "REQUISICAO DE PEQUENO VALOR (RPV) - INTEGRADO AO SIAFIWEB",
@@ -58,7 +63,12 @@
       {
         itemAlvo: "AUXILIO PROGRAMA DE REABILITAÇÃO PROFISSIONAL",
         empenho: "2026NE500058",
-        etiqueta: "RPB",
+        etiqueta: "RPB4",
+      },
+      {
+        itemAlvo: "AUXILIO PARA EXAME FORA DO DOMICILIO",
+        empenho: "2026NE500058",
+        etiqueta: "RPB1",
       },
       {
         itemAlvo: "REQUISICAO DE PEQUENO VALOR (RPV) - INTEGRADO AO SIAFIWEB",
