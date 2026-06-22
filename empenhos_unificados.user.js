@@ -2,7 +2,7 @@
 // @name         Empenhos Unificados
 // @namespace    https://ofcweb.inss.gov.br/
 // @author       Erik Higino
-// @version      2.6
+// @version      2.7
 // @description  Preenche automaticamente o Nº do Empenho no PCO conforme o ITEM da AP. Detecta automaticamente o ano selecionado (2025 ou 2026) e aplica os compromissos correspondentes. Versão com interface visual.
 // @match        https://ofcweb.inss.gov.br/*
 // @match        http://ofcweb.inss.gov.br/*
@@ -19,7 +19,7 @@
     2026: [
       {
         itemAlvo: "SERVICOS JUDICIARIOS - PESSOA JURIDICA - INTEGRADO AO SIAFIWEB",
-        empenho: "2026NE466666",
+        empenho: "2026NE566666",
         etiqueta: "39566",
       },
       {
