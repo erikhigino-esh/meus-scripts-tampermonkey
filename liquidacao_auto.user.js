@@ -2,7 +2,7 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      5.6.1
+// @version      5.6.2
 // @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente. Ignora APs com erro de validação SIAFI e segue para a próxima.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
@@ -958,6 +958,7 @@
         addIgnoredAp(idap);
         toast(`⛔ Erro de validação SIAFI detectado! AP ${idap || "?"} será ignorada. Indo para a próxima…`, 3800);
         log(`Erro SIAFI encontrado na AP ${idap || "(idap não identificado)"} — ignorando e voltando para a lista.`);
+        navigatingAway = true; // trava qualquer outra checagem até a navegação acontecer
         clearStep();
         sessionStorage.removeItem(SS.BACK_SCHEDULED);
         setTimeout(() => goListaBase(true), 600);
@@ -1068,8 +1069,10 @@ function fillDataPagamento() {
   
   // ======================= RUNNER =======================
   let running = false;
+  let navigatingAway = false; // trava para evitar que outra checagem reinicie o fluxo enquanto navega de volta
 
   function runOnce() {
+    if (navigatingAway) return;
     if (sessionStorage.getItem(SS.PICKER_OPEN) === "1" || document.getElementById("ofc-item-picker")) return;
     if (running) return;
 
