@@ -2,7 +2,7 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      5.6
+// @version      5.6.1
 // @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente. Ignora APs com erro de validação SIAFI e segue para a próxima.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
@@ -896,8 +896,26 @@
 
   // ======================= ERRO DE VALIDAÇÃO SIAFI (ignorar AP) =======================
   function hasSiafiValidationError() {
-    const text = document.body ? (document.body.innerText || document.body.textContent || "") : "";
-    return /Erro\s+valida[cç][aã]o\s+SIAFI/i.test(text);
+    const RE = /Erro\s+valida[cç][aã]o\s+SIAFI/i;
+
+    try {
+      const bodyText = document.body ? (document.body.innerText || document.body.textContent || "") : "";
+      if (RE.test(bodyText)) return true;
+    } catch {}
+
+    // Fallback: alguns painéis do OFCWeb podem renderizar dentro de iframes
+    try {
+      const frames = document.querySelectorAll("iframe");
+      for (const f of frames) {
+        try {
+          const fdoc = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+          const ftext = fdoc && fdoc.body ? (fdoc.body.innerText || fdoc.body.textContent || "") : "";
+          if (RE.test(ftext)) return true;
+        } catch {}
+      }
+    } catch {}
+
+    return false;
   }
 
   function getCurrentIdap() {
@@ -931,6 +949,21 @@
     const now = Date.now();
     const step = getStep();
     const ts = getTS();
+
+    // Verificação GLOBAL de erro de validação SIAFI — roda em qualquer etapa do fluxo
+    // (o erro pode aparecer logo após "Gerar Documento Hábil", antes mesmo do botão "Confirmar" existir)
+    if (step && step !== "after_transmit") {
+      if (hasSiafiValidationError()) {
+        const idap = getCurrentIdap();
+        addIgnoredAp(idap);
+        toast(`⛔ Erro de validação SIAFI detectado! AP ${idap || "?"} será ignorada. Indo para a próxima…`, 3800);
+        log(`Erro SIAFI encontrado na AP ${idap || "(idap não identificado)"} — ignorando e voltando para a lista.`);
+        clearStep();
+        sessionStorage.removeItem(SS.BACK_SCHEDULED);
+        setTimeout(() => goListaBase(true), 600);
+        return;
+      }
+    }
 
     // PASSO 1 — Salvar DH no OFCWeb
     const btnSalvar = findBtnSalvarDH();
@@ -985,18 +1018,8 @@
       return;
     }
 
-    // PASSO 4 — Verifica se houve erro de validação SIAFI; senão, segue fluxo normal
+    // PASSO 4 — Transmissão encaminhada, aguardar 5s
     if (step === "confirm_clicked") {
-      if (hasSiafiValidationError()) {
-        const idap = getCurrentIdap();
-        addIgnoredAp(idap);
-        toast(`⛔ AP ${idap || "?"} ignorada (erro de validação SIAFI). Indo para a próxima…`, 3200);
-        clearStep();
-        sessionStorage.removeItem(SS.BACK_SCHEDULED);
-        setTimeout(() => goListaBase(true), 600);
-        return;
-      }
-
       setStep("after_transmit");
       setTS(Date.now());
       toast("📤 Transmissão encaminhada. Aguardando 5s para voltar à lista…", 2400);
