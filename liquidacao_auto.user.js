@@ -2,8 +2,8 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      5.5
-// @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente.
+// @version      5.6
+// @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente. Ignora APs com erro de validação SIAFI e segue para a próxima.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
 // @match        https://ofcweb.inss.gov.br/View/Form_AP_DH_Geral.php*
@@ -30,6 +30,11 @@
     NEED_PICK_ITEMS: "ofc_dh_need_pick_items",
     PICKER_OPEN: "ofc_dh_picker_open",
   };
+
+  // Chave (por sessão) das APs ignoradas por erro de validação SIAFI, separada por ano
+  function getIgnoredKey() {
+    return `ofc_dh_ignored_siafi_${getAnoAtivo()}`;
+  }
 
   const log = (...a) => console.log(`[AUTO-DH ${getAnoAtivo()}]`, ...a);
 
@@ -776,6 +781,7 @@
   function findFirstDHMatchingItems() {
     const selected = new Set(getSelectedItems());
     const filterOn = selected.size > 0;
+    const ignored = getIgnoredApsSet();
 
     const rows = document.querySelectorAll("table.tbl tbody tr.tbl-row");
     for (const row of rows) {
@@ -784,7 +790,14 @@
 
       const a = Array.from(row.querySelectorAll("td.tbl-controls a[onclick]"))
         .find(x => /Define_Formulario_Liquidacao_DH\.php\?idap=/i.test(x.getAttribute("onclick") || ""));
-      if (a) return a;
+      if (!a) continue;
+
+      const onclick = a.getAttribute("onclick") || "";
+      const mIdap = onclick.match(/idap=(\d+)/i);
+      const idap = mIdap ? mIdap[1] : "";
+      if (idap && ignored.has(idap)) continue; // pula AP com erro SIAFI já detectado nesta sessão
+
+      return a;
     }
     return null;
   }
@@ -881,6 +894,36 @@
     );
   }
 
+  // ======================= ERRO DE VALIDAÇÃO SIAFI (ignorar AP) =======================
+  function hasSiafiValidationError() {
+    const text = document.body ? (document.body.innerText || document.body.textContent || "") : "";
+    return /Erro\s+valida[cç][aã]o\s+SIAFI/i.test(text);
+  }
+
+  function getCurrentIdap() {
+    const el = document.querySelector('input[name="idap"]');
+    if (el && el.value) return String(el.value).trim();
+    const m = normalizeUrl(location.href).match(/[?&]idap=(\d+)/i);
+    return m ? m[1] : "";
+  }
+
+  function getIgnoredApsSet() {
+    try {
+      const raw = sessionStorage.getItem(getIgnoredKey());
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(arr) ? arr.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function addIgnoredAp(idap) {
+    if (!idap) return;
+    const set = getIgnoredApsSet();
+    set.add(String(idap));
+    sessionStorage.setItem(getIgnoredKey(), JSON.stringify(Array.from(set)));
+  }
+
   function fluxoDH() {
     if (!isActive()) return;
     if (!isDhFormPage()) return;
@@ -942,8 +985,18 @@
       return;
     }
 
-    // PASSO 4 — Transmissão encaminhada, aguardar 5s
+    // PASSO 4 — Verifica se houve erro de validação SIAFI; senão, segue fluxo normal
     if (step === "confirm_clicked") {
+      if (hasSiafiValidationError()) {
+        const idap = getCurrentIdap();
+        addIgnoredAp(idap);
+        toast(`⛔ AP ${idap || "?"} ignorada (erro de validação SIAFI). Indo para a próxima…`, 3200);
+        clearStep();
+        sessionStorage.removeItem(SS.BACK_SCHEDULED);
+        setTimeout(() => goListaBase(true), 600);
+        return;
+      }
+
       setStep("after_transmit");
       setTS(Date.now());
       toast("📤 Transmissão encaminhada. Aguardando 5s para voltar à lista…", 2400);
