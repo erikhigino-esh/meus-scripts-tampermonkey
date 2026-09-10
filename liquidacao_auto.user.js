@@ -2,7 +2,7 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      5.6.2
+// @version      5.7
 // @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente. Ignora APs com erro de validação SIAFI e segue para a próxima.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
@@ -1066,6 +1066,20 @@ function fillDataPagamento() {
   campo.value = `${dd}/${mm}/${aaaa}`;
   log(`Data pagamento preenchida: ${campo.value}`);
 }
+
+// ======================= DATA VENCIMENTO (somente se vazia) =======================
+function fillDataVencimento() {
+  if (!isDhFormPage()) return;
+  const campo = document.getElementById("dt_vencimento");
+  if (!campo) return;
+  if (campo.value && campo.value.trim() !== "") return; // já preenchido, não mexe
+  const hoje = new Date();
+  const dd = String(hoje.getDate()).padStart(2, "0");
+  const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+  const aaaa = hoje.getFullYear();
+  campo.value = `${dd}/${mm}/${aaaa}`;
+  log(`Data de vencimento (estava vazia) preenchida: ${campo.value}`);
+}
   
   // ======================= RUNNER =======================
   let running = false;
@@ -1095,6 +1109,7 @@ function fillDataPagamento() {
     log("Script carregado");
     fillDataEmissao();
     fillDataPagamento();
+    fillDataVencimento();
     ensureFloatingToggle();
 
     if (document.readyState === 'loading') {
