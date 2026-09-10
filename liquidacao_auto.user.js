@@ -2,7 +2,7 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      5.7
+// @version      5.8
 // @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente. Ignora APs com erro de validação SIAFI e segue para a próxima.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
@@ -103,8 +103,17 @@
 
   function goListaBase(replace = true) {
     toast("↩️ Voltando para a lista…", 2200);
-    if (replace) location.replace(getListaUrlBase());
-    else location.href = getListaUrlBase();
+    const target = getListaUrlBase();
+    if (replace) location.replace(target);
+    else location.href = target;
+
+    // Salvaguarda: se por algum motivo a navegação não ocorrer, tenta novamente
+    setTimeout(() => {
+      if (normalizeUrl(location.href) !== normalizeUrl(target)) {
+        log("Navegação para a lista não ocorreu, tentando novamente via location.href…");
+        try { location.href = target; } catch {}
+      }
+    }, 1500);
   }
 
   // ======================= UTILITIES =======================
@@ -1034,6 +1043,7 @@
         toast(`⏳ Voltando para a lista em ${Math.ceil((8000 - elapsed) / 1000)}s…`, 1200);
         return;
       }
+      navigatingAway = true; // trava qualquer outra checagem até a navegação acontecer
       clearStep();
       sessionStorage.removeItem(SS.BACK_SCHEDULED);
       goListaBase(true);
