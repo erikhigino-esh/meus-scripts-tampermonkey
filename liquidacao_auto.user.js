@@ -2,7 +2,7 @@
 // @name         Liquidação Automática
 // @namespace    http://tampermonkey.net/
 // @author       Erik Higino
-// @version      6.1
+// @version      6.2
 // @description  Auto-liquidação DH. Detecta automaticamente o ano (2025/2026), seleção de ITEMs obrigatória, delays (5s/5s/5s), toggle moderno e resiliente. Preenche data de emissão contábil automaticamente. Ignora APs com erro de validação SIAFI e segue para a próxima.
 // @match        https://ofcweb.inss.gov.br/View/Consultar_Liquidar.php*
 // @match        https://ofcweb.inss.gov.br/View/Define_Formulario_Liquidacao_DH.php*
@@ -959,12 +959,10 @@
     const step = getStep();
     const ts = getTS();
 
-    // [DIAGNÓSTICO TEMPORÁRIO] — apenas log, não altera nenhuma lógica
-    log(`[diag] step="${step || "(vazio)"}" | url=${normalizeUrl(location.href)} | erroSiafiNaTela=${hasSiafiValidationError()}`);
-
-    // Verificação GLOBAL de erro de validação SIAFI — roda em qualquer etapa do fluxo
-    // (o erro pode aparecer logo após "Gerar Documento Hábil", antes mesmo do botão "Confirmar" existir)
-    if (step && step !== "after_transmit") {
+    // Verificação GLOBAL de erro de validação SIAFI — roda em qualquer etapa do fluxo,
+    // incluindo "after_transmit" (em formulários como RPB, sem reload de página, o erro
+    // pode só aparecer na tela depois do "Confirmar", durante a espera pós-transmissão)
+    if (step) {
       if (hasSiafiValidationError()) {
         const idap = getCurrentIdap();
         addIgnoredAp(idap);
@@ -1099,10 +1097,7 @@ function fillDataVencimento() {
   let navigatingAway = false; // trava para evitar que outra checagem reinicie o fluxo enquanto navega de volta
 
   function runOnce() {
-    if (navigatingAway) {
-      log("[diag] runOnce bloqueado: navigatingAway = true");
-      return;
-    }
+    if (navigatingAway) return;
     if (sessionStorage.getItem(SS.PICKER_OPEN) === "1" || document.getElementById("ofc-item-picker")) return;
     if (running) return;
 
